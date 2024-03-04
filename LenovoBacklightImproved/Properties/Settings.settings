@@ -1,0 +1,18 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="LenovoBacklightImproved.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="DllPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\ProgramData\Lenovo\Vantage\Addins\ThinkKeyboardAddin\1.0.0.18\Keyboard_Core.dll</Value>
+    </Setting>
+    <Setting Name="InactivityTimeout" Type="System.UInt32" Scope="User">
+      <Value Profile="(Default)">15000</Value>
+    </Setting>
+    <Setting Name="CheckInterval" Type="System.UInt32" Scope="User">
+      <Value Profile="(Default)">250</Value>
+    </Setting>
+    <Setting Name="BacklightLevel" Type="System.Byte" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

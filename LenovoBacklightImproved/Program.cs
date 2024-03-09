@@ -55,10 +55,6 @@ namespace LenovoBacklightImproved
          */
         private Program()
         {
-            inactivityTimeout = Properties.Settings.Default.InactivityTimeout;
-            timeoutTimer.Interval = Properties.Settings.Default.CheckInterval;
-            selectedBacklightLevel = Properties.Settings.Default.BacklightLevel;
-
             try
             {
                 loadDll(Properties.Settings.Default.DllPath);
@@ -87,6 +83,12 @@ namespace LenovoBacklightImproved
             RegisterPowerSettingNotification(this.Handle, ref GUID_SYSTEM_POWER_SETTING, 0);
 
             systemTray = new SystemTray(this);
+
+            inactivityTimeout = Properties.Settings.Default.InactivityTimeout;
+            timeoutTimer.Interval = Properties.Settings.Default.CheckInterval;
+
+            selectBacklightLevel(Properties.Settings.Default.BacklightLevel);
+
             Application.Run(systemTray);
         }
 
@@ -120,18 +122,38 @@ namespace LenovoBacklightImproved
         {
             if (m.Msg == aboutToSleep.Msg && m.WParam == aboutToSleep.WParam)
             {
-                Debug.WriteLine("The system is going to sleep! Stopping timeoutTimer!");
+                Trace.WriteLine("The system is going to sleep! Stopping timeoutTimer!");
                 stopTimer();
             }
             else if (m.Msg == resumeFromSleep.Msg && m.WParam == resumeFromSleep.WParam)
             {
-                Debug.WriteLine("The system has waken up! Starting timeoutTimer!");
+                Trace.WriteLine("The system has waken up! Starting timeoutTimer!");
                 setBacklightStatusSafe(keyboardBacklightStatusControl, getStatusFromLevel(selectedBacklightLevel));
                 startTimer();
             }
 
             // Call the base method
             base.WndProc(ref m);
+        }
+        
+        /*
+         *  Internal Helper Functions
+         */
+        internal void selectBacklightLevel(byte newBacklightLevel)
+        {
+            selectedBacklightLevel = newBacklightLevel;
+            Properties.Settings.Default.BacklightLevel = selectedBacklightLevel;
+            Properties.Settings.Default.Save();
+            
+            if (systemTray != null)
+            {
+                systemTray.updateLevelsChecked();
+            }
+        }
+
+        internal byte getSelectedBacklightLevel()
+        {
+            return selectedBacklightLevel;
         }
 
         /*
@@ -153,13 +175,6 @@ namespace LenovoBacklightImproved
             timeoutTimer.Stop();
         }
 
-        private void selectBacklightLevel(byte newBacklightLevel)
-        {
-            selectedBacklightLevel = newBacklightLevel;
-            Properties.Settings.Default.BacklightLevel = selectedBacklightLevel;
-            Properties.Settings.Default.Save();
-        }
-
         private void setBacklightStatusSafe(KeyboardBacklightStatusControl? keyboardBacklightStatusControl, byte expectedStatus)
         {
             if (keyboardBacklightStatusControl != null)
@@ -176,27 +191,27 @@ namespace LenovoBacklightImproved
             byte newBacklightStatus = keyboardBacklightStatusControl.GetStatus();
             byte expectedStatus = getStatusFromLevel(selectedBacklightLevel);
 
-            Debug.WriteLine($"Idle time: {idleTime}");
-            Debug.WriteLine($"Backlight status check: {currentBacklightStatus}, {newBacklightStatus}, {isStatusChangeFromUs}");
+            Trace.WriteLine($"Idle time: {idleTime}");
+            Trace.WriteLine($"Backlight status check: {currentBacklightStatus}, {newBacklightStatus}, {isStatusChangeFromUs}");
 
             if (newBacklightStatus != currentBacklightStatus && isStatusChangeFromUs == false)
             {
                 selectBacklightLevel((byte)((selectedBacklightLevel + 1) % 5));
                 SystemIdle.makeNotIdle();
 
-                Debug.WriteLine($"Backlight level change: {selectedBacklightLevel}");
+                Trace.WriteLine($"Backlight level change: {selectedBacklightLevel}");
 
                 expectedStatus = getStatusFromLevel(selectedBacklightLevel);
 
                 if (expectedStatus != newBacklightStatus)
                 {
                     setBacklightStatusSafe(keyboardBacklightStatusControl, expectedStatus);
-                    Debug.WriteLine($"Change needed!");
+                    Trace.WriteLine($"Change needed!");
                 }
                 else
                 {
                     currentBacklightStatus = expectedStatus;
-                    Debug.WriteLine($"No change needed!");
+                    Trace.WriteLine($"No change needed!");
                 }
             }
             else if (isStatusChangeFromUs)
@@ -204,20 +219,24 @@ namespace LenovoBacklightImproved
                 isStatusChangeFromUs = false;
             }
 
-            Debug.WriteLine($"Current backlight level: {selectedBacklightLevel}");
+            Trace.WriteLine($"Current backlight level: {selectedBacklightLevel}");
 
             if (selectedBacklightLevel > 2)
             {
                 if (idleTime >= inactivityTimeout && newBacklightStatus != 0)
                 {
                     setBacklightStatusSafe(keyboardBacklightStatusControl, 0);
-                    Debug.WriteLine($"Idle! Shutting off!");
+                    Trace.WriteLine($"Idle! Shutting off!");
                 }
                 else if (idleTime < inactivityTimeout && newBacklightStatus != getStatusFromLevel(selectedBacklightLevel))
                 {
                     setBacklightStatusSafe(keyboardBacklightStatusControl, expectedStatus);
-                    Debug.WriteLine($"Not idle! Setting to {expectedStatus}");
+                    Trace.WriteLine($"Not idle! Setting to {expectedStatus}");
                 }
+            }
+            else if (getStatusFromLevel(selectedBacklightLevel) != newBacklightStatus)
+            {
+                setBacklightStatusSafe(keyboardBacklightStatusControl, getStatusFromLevel(selectedBacklightLevel));
             }
         }
 

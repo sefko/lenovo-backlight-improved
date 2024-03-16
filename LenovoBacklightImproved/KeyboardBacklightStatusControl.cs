@@ -18,7 +18,7 @@ namespace LenovoBacklightImproved
         {
             dllPath = dllFilePath;
 
-            Type? keyboardControlType = Assembly.LoadFile(dllFilePath).GetType(KeyboardControl);
+            Type? keyboardControlType = Assembly.LoadFrom(dllFilePath).GetType(KeyboardControl);
 
             if (keyboardControlType != null)
             {
@@ -28,6 +28,8 @@ namespace LenovoBacklightImproved
                 {
                     this.keyboardControlInstance = keyboardControlInstance;
 
+                    MethodInfo[] methods = keyboardControlInstance.GetType().GetMethods();
+
                     MethodInfo? getKeyboardBacklightStatus = Array.Find(keyboardControlType.GetMethods(), method => method.Name.Equals(GetKeyboardBacklightStatus));
                     MethodInfo? setKeyboardBacklightStatus = Array.Find(keyboardControlType.GetMethods(), method => method.Name.Equals(SetKeyboardBackLightStatus));
 
@@ -35,15 +37,18 @@ namespace LenovoBacklightImproved
                     {
                         this.getKeyboardBacklightStatus = getKeyboardBacklightStatus;
                         this.setKeyboardBacklightStatus = setKeyboardBacklightStatus;
-                    } else
+                    }
+                    else
                     {
                         throw new DllNotSupportedException($"Some keyboard backlight status functions are not available in file '{dllFilePath}'!");
                     }
-                } else
+                }
+                else
                 {
                     throw new DllNotSupportedException($"Could not instantiate '{KeyboardControl} type from file '{dllFilePath}'!");
                 }
-            } else
+            }
+            else
             {
                 throw new DllNotSupportedException($"Type '{KeyboardControl}' is not available in file '{dllFilePath}'!");
             }
@@ -51,8 +56,7 @@ namespace LenovoBacklightImproved
 
         public byte GetStatus()
         {
-            object?[] args = [ null, null ];
-
+            object?[] args = getKeyboardBacklightStatus.GetParameters().Length == 2 ? [null, null] : [null];
             getKeyboardBacklightStatus.Invoke(keyboardControlInstance, args);
 
             if (args[0] == null || (int)args[0]! < 0 || (int)args[0]! > 2)
@@ -70,7 +74,7 @@ namespace LenovoBacklightImproved
                 throw new ArgumentOutOfRangeException("Keyboard backlight status could be a value between 0 and 2.");
             }
 
-            object?[] args = [(int)status, null];
+            object?[] args = getKeyboardBacklightStatus.GetParameters().Length == 2 ? [(int)status, null] : [(int)status];
             setKeyboardBacklightStatus.Invoke(keyboardControlInstance, args);
         }
 

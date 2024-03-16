@@ -14,7 +14,9 @@ namespace LenovoBacklightImproved
         /*
          *  Private Constants
          */
-        private const string defaultDll = "C:\\ProgramData\\Lenovo\\Vantage\\Addins\\ThinkKeyboardAddin\\1.0.0.18\\Keyboard_Core.dll";
+        private const string defaultDllLocation = "C:\\ProgramData\\Lenovo";
+        private readonly string[] defaultDlls = ["C:\\ProgramData\\Lenovo\\Vantage\\Addins\\ThinkKeyboardAddin\\1.0.0.18\\Keyboard_Core.dll",
+                                                 "C:\\ProgramData\\Lenovo\\ImController\\Plugins\\ThinkKeyboardPlugin\\x86\\Keyboard_Core.dll"];
 
         /*
          *  Private Variabled
@@ -61,7 +63,14 @@ namespace LenovoBacklightImproved
             }
             catch (Exception ex)
             {
-                if (Properties.Settings.Default.DllPath != defaultDll)
+                string? defaultDll = defaultDlls.FirstOrDefault(dllPath => File.Exists(dllPath));
+
+                if (defaultDll == null)
+                {
+                    defaultDll = FindFile(defaultDllLocation, "Keyboard_Core.dll");
+                }
+
+                if (defaultDll != null && Properties.Settings.Default.DllPath != defaultDll)
                 {
                     try
                     {
@@ -238,6 +247,37 @@ namespace LenovoBacklightImproved
             {
                 setBacklightStatusSafe(keyboardBacklightStatusControl, getStatusFromLevel(selectedBacklightLevel));
             }
+        }
+        private static string? FindFile(string path, string fileSearched)
+        {
+            try
+            {
+                string? foundFile = Directory.GetFiles(path).FirstOrDefault(file => file.EndsWith(fileSearched));
+
+                if (foundFile != null)
+                {
+                    return foundFile;
+                }
+
+                string[] dirs = Directory.GetDirectories(path);
+
+                foreach (string dir in dirs)
+                {
+                    foundFile = FindFile(dir, fileSearched);
+                    
+                    if (foundFile != null)
+                    {
+                        return foundFile;
+                    }
+                }
+
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // No access to folder! Move on!
+            }
+
+            return null;
         }
 
         /*
